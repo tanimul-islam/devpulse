@@ -18,9 +18,9 @@
 | TypeScript | use latest version, dont use beta version |
 | Express.js | Modular router architecture |
 | PostgreSQL | Relational database, native `pg` driver only |
-| Raw SQL | Direct `pool.query()` calls, absolutely no query builders or ORMs |
+| Raw SQL | Direct `pool.query()` calls, absolutely no query builders, ORMs, or SQL JOINs |
 | bcrypt | Password hashing, salt rounds between 8 and 12 |
-| jsonwebtoken | JWT generation & verification |
+| jsonwebtoken | JWT generation & verification (standard tokens) |
 
 ---
 
@@ -28,15 +28,18 @@
 
 | Role | Allowed Actions |
 | --- | --- |
-| **contributor** | • Register and log in<br>• Create new issues (bug or feature request)<br>• Upvote or downvote any issue<br>• View all issues and voting metrics |
+| **contributor** | • Register and log in<br>• Create new issues (bug or feature request)<br>• View all issues |
 | **maintainer** | • All contributor permissions<br>• Update any issue field<br>• Delete any issue<br>• Change issue workflow status independently<br>• Access internal system metrics |
 
 ---
 
 ## 🔐 Authentication & Authorization System
 
-- **JWT Flow:** Client sends credentials → Server validates & hashes/compares → Server returns signed JWT → Client attaches token to `Authorization: Bearer <token>` header → Server verifies signature & expiry before processing.
-- **Security Rules:** Passwords are never exposed in responses or logs. All protected endpoints reject requests without a valid token. Role verification occurs before privileged operations. Database interactions use parameterized queries only.
+- **JWT Flow:** Client sends credentials → Server validates & hashes/compares → Server returns signed JWT → Client attaches token to `Authorization: <token>` header → Server verifies signature & expiry before processing.
+- **Security Rules:**
+    - Passwords are never exposed in responses or logs.
+    - Protected endpoints reject requests without a valid JWT.
+    - Role verification occurs before privileged operations.
 
 ---
 
@@ -50,7 +53,7 @@
 | `name` | Full display name of the team member, must be provided |
 | `email` | Valid login address, must be unique across all accounts, must be provided |
 | `password` | Encrypted string stored securely, must be provided during registration, never returned in responses |
-| `role` | Determines system access level, defaults to `contributor`, must match allowed role values |
+| `role` | Determines system access level, defaults to `contributor`, must be `contributor` or `maintainer` |
 | `created_at` | Timestamp marking when the account was created, automatically generated on insert |
 | `updated_at` | Timestamp marking when the account was last updated, automatically refreshed on update |
 
@@ -62,18 +65,10 @@
 | `title` | Short descriptive headline, must be provided, maximum 150 characters |
 | `description` | Detailed explanation of the problem or suggestion, must be provided, minimum 20 characters |
 | `type` | Categorizes the entry, must be either `bug` or `feature_request` |
-| `status` | Current workflow state, defaults to `open.` Status must be one of: `open`, `in_progress`, `resolved` |
-| `reporter_id` | Links to the user who submitted the issue, must reference a valid user, cascade deletes if user is removed |
+| `status` | Current workflow state, defaults to `open`. Status must be one of: `open`, `in_progress`, `resolved` |
+| `reporter_id` | References the user who submitted the issue (no foreign key constraint required; validate in application logic) |
 | `created_at` | Timestamp marking when the issue was created, automatically generated on insert |
 | `updated_at` | Timestamp marking when the issue was last updated, automatically refreshed on update |
-
-### Table 3: `upvotes`
-
-| Field | Requirement (Plain Text) |
-| --- | --- |
-| `user_id` | Links to the user who cast the vote, must reference a valid user, cascade deletes if user is removed |
-| `issue_id` | Links to the target issue, must reference a valid issue, cascade deletes if issue is removed |
-| `composite_key` | Combination of user and issue fields must be strictly unique to prevent any duplicate voting |
 
 ---
 
@@ -160,6 +155,9 @@
 }
 ```
 
+> 💡 **Hint:** When signing the JWT during login, include the user's `id`, `name`, and `role` in the token payload. These fields will be needed later to identify the requester and enforce permissions.
+> 
+
 ---
 
 ### 🔹 Issues Module
@@ -177,7 +175,7 @@
 **Headers**
 
 ```
-Authorization: Bearer <JWT_TOKEN>
+Authorization: <JWT_TOKEN>
 ```
 
 **Request Body**
@@ -202,17 +200,15 @@ Authorization: Bearer <JWT_TOKEN>
     "description": "Pool exhausts after 50+ concurrent queries, causing 500 errors",
     "type": "bug",
     "status": "open",
-    "reporter": {
-      "id": 1,
-      "name": "John Doe",
-      "role": "contributor"
-    },
-    "upvote_count": 0,
+    "reporter_id": 1,
     "created_at": "2026-01-20T10:30:00Z",
     "updated_at": "2026-01-20T10:30:00Z"
   }
 }
 ```
+
+> 💡 **Hint:** The `reporter_id` is extracted from the decoded JWT (`req.user.id`), not from the request body.
+> 
 
 ---
 
@@ -220,17 +216,17 @@ Authorization: Bearer <JWT_TOKEN>
 
 **Access:** Public
 
-**Description:** Retrieve all issues with optional sorting by upvotes, newest, or oldest
+**Description:** Retrieve all issues with optional sorting and filtering
 
 **Endpoint**
 
-`GET /api/v1/issues?sort=upvotes`
+`GET /api/v1/issues?sort=newest`
 
-**Query Parameters**
+**Query Parameters (`let’s take a challenge`)**
 
 | Param | Values | Default |
 | --- | --- | --- |
-| `sort` | `upvotes`, `newest`, `oldest` | `upvotes` |
+| `sort` | `newest`, `oldest` | `newest` |
 | `type` | `bug`, `feature_request` | (none) |
 | `status` | `open`, `in_progress`, `resolved` | (none) |
 
@@ -251,16 +247,15 @@ Authorization: Bearer <JWT_TOKEN>
         "name": "John Doe",
         "role": "contributor"
       },
-      "upvote_count": 12,
       "created_at": "2026-01-20T10:30:00Z",
       "updated_at": "2026-01-20T14:45:00Z"
-    },
-    {
-		  // more
-		 }
+    }
   ]
 }
 ```
+
+> 💡 **Hint:** To include `reporter` details without JOINs, fetch issues first, then fetch reporter data for each issue in a separate query (or batch with `WHERE id IN (...)`).
+> 
 
 ---
 
@@ -290,7 +285,6 @@ Authorization: Bearer <JWT_TOKEN>
       "name": "John Doe",
       "role": "contributor"
     },
-    "upvote_count": 12,
     "created_at": "2026-01-20T10:30:00Z",
     "updated_at": "2026-01-20T14:45:00Z"
   }
@@ -312,7 +306,7 @@ Authorization: Bearer <JWT_TOKEN>
 **Headers**
 
 ```
-Authorization: Bearer <JWT_TOKEN>
+Authorization: <JWT_TOKEN>
 ```
 
 **Request Body**
@@ -337,12 +331,7 @@ Authorization: Bearer <JWT_TOKEN>
     "description": "Updated description with reproduction steps...",
     "type": "bug",
     "status": "in_progress",
-    "reporter": {
-      "id": 1,
-      "name": "John Doe",
-      "role": "contributor"
-    },
-    "upvote_count": 12,
+    "reporter_id": 1,
     "created_at": "2026-01-20T10:30:00Z",
     "updated_at": "2026-01-20T14:45:00Z"
   }
@@ -351,57 +340,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
-### 7. Update Issue Status (Maintainer Only)
-
-**Access:** Maintainer only
-
-**Description:** Change the workflow status of an issue independently
-
-**Endpoint**
-
-`PATCH /api/v1/issues/:id/status`
-
-**Headers**
-
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-**Request Body**
-
-```json
-{
-  "status": "resolved"
-}
-```
-
-**Success Response (200 OK)**
-
-```json
-{
-  "success": true,
-  "message": "Issue status updated successfully",
-  "data": {
-    "id": 45,
-    "title": "Updated: Database pool exhaustion fix needed",
-    "description": "Updated description with reproduction steps...",
-    "type": "bug",
-    "status": "resolved",
-    "reporter": {
-      "id": 1,
-      "name": "John Doe",
-      "role": "contributor"
-    },
-    "upvote_count": 12,
-    "created_at": "2026-01-20T10:30:00Z",
-    "updated_at": "2026-01-20T16:20:00Z"
-  }
-}
-```
-
----
-
-### 8. Delete Issue
+### 7. Delete Issue
 
 **Access:** Maintainer only
 
@@ -414,7 +353,7 @@ Authorization: Bearer <JWT_TOKEN>
 **Headers**
 
 ```
-Authorization: Bearer <JWT_TOKEN>
+Authorization: <JWT_TOKEN>
 ```
 
 **Success Response (200 OK)**
@@ -423,92 +362,6 @@ Authorization: Bearer <JWT_TOKEN>
 {
   "success": true,
   "message": "Issue deleted successfully"
-}
-```
-
----
-
-### 🔹 Upvotes Module
-
-### 9. Upvote Issue
-
-**Access:** Authenticated users
-
-**Description:** Add an upvote to signal issue priority (one vote per user per issue)
-
-**Endpoint**
-
-`POST /api/v1/issues/:id/upvote`
-
-**Headers**
-
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-**Success Response (200 OK)**
-
-```json
-{
-  "success": true,
-  "message": "Issue upvoted successfully",
-  "data": {
-    "id": 45,
-    "title": "Database connection timeout under load",
-    "description": "Pool exhausts after 50+ concurrent queries, causing 500 errors",
-    "type": "bug",
-    "status": "open",
-    "reporter": {
-      "id": 1,
-      "name": "John Doe",
-      "role": "contributor"
-    },
-    "upvote_count": 13,
-    "created_at": "2026-01-20T10:30:00Z",
-    "updated_at": "2026-01-20T10:30:00Z"
-  }
-}
-```
-
----
-
-### 10. Downvote Issue (Remove Upvote)
-
-**Access:** Authenticated users
-
-**Description:** Remove a previously cast upvote from an issue
-
-**Endpoint**
-
-`DELETE /api/v1/issues/:id/upvote`
-
-**Headers**
-
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-**Success Response (200 OK)**
-
-```json
-{
-  "success": true,
-  "message": "Upvote removed successfully",
-  "data": {
-    "id": 45,
-    "title": "Database connection timeout under load",
-    "description": "Pool exhausts after 50+ concurrent queries, causing 500 errors",
-    "type": "bug",
-    "status": "open",
-    "reporter": {
-      "id": 1,
-      "name": "John Doe",
-      "role": "contributor"
-    },
-    "upvote_count": 12,
-    "created_at": "2026-01-20T10:30:00Z",
-    "updated_at": "2026-01-20T10:30:00Z"
-  }
 }
 ```
 
@@ -566,13 +419,13 @@ Authorization: Bearer <JWT_TOKEN>
 - Keep code **clean and readable**: meaningful variable names, consistent formatting, inline comments for complex logic
 - Use **TypeScript strictly**: no `any` types, proper interfaces for request/response bodies
 
-**Critical Requirement:**
+**Critical Requirements:**
 
 ⚠️ **You must follow the `API Endpoints Specification` exactly**—including endpoint paths, HTTP methods, request body structure, and response format. Deviations will result in **0 marks**.
 
 ---
 
-### 2️⃣ **Documentation & Deployment Requirements**
+### 2️⃣ Documentation & Deployment Requirements
 
 [**README.md](http://readme.md/) Overview:** Include project name, live URL, features, tech stack, setup steps, API endpoint list, and database schema summary. Keep it clear and professional.
 
@@ -584,7 +437,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
-### **3️⃣** What You Need to Submit
+### 3️⃣ What You Need to Submit
 
 ```
 GitHub Repo (Public): <https://github.com/yourusername/devpulse>
