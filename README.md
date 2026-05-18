@@ -84,7 +84,7 @@
 
 **Endpoint**
 
-`POST /api/v1/auth/signup`
+`POST /api/auth/signup`
 
 **Request Body**
 
@@ -124,7 +124,7 @@
 
 **Endpoint**
 
-`POST /api/v1/auth/login`
+`POST /api/auth/login`
 
 **Request Body**
 
@@ -170,7 +170,7 @@
 
 **Endpoint**
 
-`POST /api/v1/issues`
+`POST /api/issues`
 
 **Headers**
 
@@ -220,7 +220,7 @@ Authorization: <JWT_TOKEN>
 
 **Endpoint**
 
-`GET /api/v1/issues?sort=newest`
+`GET /api/issues?sort=newest`
 
 **Query Parameters (`let’s take a challenge`)**
 
@@ -267,7 +267,7 @@ Authorization: <JWT_TOKEN>
 
 **Endpoint**
 
-`GET /api/v1/issues/:id`
+`GET /api/issues/:id`
 
 **Success Response (200 OK)**
 
@@ -301,7 +301,7 @@ Authorization: <JWT_TOKEN>
 
 **Endpoint**
 
-`PATCH /api/v1/issues/:id`
+`PATCH /api/issues/:id`
 
 **Headers**
 
@@ -348,7 +348,7 @@ Authorization: <JWT_TOKEN>
 
 **Endpoint**
 
-`DELETE /api/v1/issues/:id`
+`DELETE /api/issues/:id`
 
 **Headers**
 
