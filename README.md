@@ -407,6 +407,26 @@ Authorization: <JWT_TOKEN>
 
 ---
 
+## 🎤 Technical Interview Video (Answer Any 3)
+
+**Questions:**
+
+1. How does the Node.js event loop execute asynchronous tasks without blocking the single main thread?
+2. What is the purpose of `next()` in Express middleware, and what happens if it is omitted in a route handler?
+3. How do you create a centralized error-handling middleware in Express to safely catch both sync and async errors?
+4. What are the main differences between SQL (PostgreSQL) and NoSQL (MongoDB) regarding schema design and scaling?
+5. What is database connection pooling in PostgreSQL, and why is it preferred over opening a new client connection for every request?
+
+**Recording Instructions:**
+
+- Use smartphone selfie camera or laptop webcam in **landscape mode**
+- Record in a well-lit, quiet room with your **face fully visible**
+- Answer your chosen **3 questions.**
+- Keep each answer **under 5 minutes**
+- Upload video to Google Drive/Youtube or any other online space, and share public acceible link.
+
+---
+
 ## 📬 Submission Guidelines
 
 ### 1️⃣ Codebase Requirements
@@ -419,33 +439,42 @@ Authorization: <JWT_TOKEN>
 - Keep code **clean and readable**: meaningful variable names, consistent formatting, inline comments for complex logic
 - Use **TypeScript strictly**: no `any` types, proper interfaces for request/response bodies
 
-**Critical Requirements:**
-
+**Critical Requirement:**
 ⚠️ **You must follow the `API Endpoints Specification` exactly**—including endpoint paths, HTTP methods, request body structure, and response format. Deviations will result in **0 marks**.
 
 ---
 
-### 2️⃣ Documentation & Deployment Requirements
-
-[**README.md](http://readme.md/) Overview:** Include project name, live URL, features, tech stack, setup steps, API endpoint list, and database schema summary. Keep it clear and professional.
-
-**Deployment Requirements:**
+### 2️⃣ Deployment Requirements
 
 - Deploy backend to **Vercel**, **Render**, or **Railway**
 - Use **NeonDB**, **Supabase**, or **ElephantSQL** for PostgreSQL
 - Ensure CORS and environment variables are properly configured
 
+[**README.md](http://readme.md/) must include:**
+
+- Project name, live URL, features, tech stack
+- Setup steps, API endpoint list, database schema summary
+- Keep it clear and professional
+
 ---
 
-### 3️⃣ What You Need to Submit
+---
+
+### 3️⃣ Final Submission Checklist
+
+Submit the following in your assignment form:
 
 ```
-GitHub Repo (Public): <https://github.com/yourusername/devpulse>
-Live Deployment (Public): <https://devpulse-api.vercel.app>
+✅ GitHub Repo (Public):      <https://github.com/yourusername/devpulse>
+✅ Live Deployment (Public):  <https://devpulse-api.vercel.app>
+✅ Interview Video (Public):  <https://drive.google.com/>... or <https://youtu.be/>...
 ```
 
-> 💡 Pro Tip: Ensure your GitHub repo has at least 10 meaningful commits showing progressive development. Avoid single-commit submissions.
+> 💡 **Pro Tips:**
 > 
+> - Ensure your GitHub repo has **at least 10 meaningful commits** showing progressive development
+> - Avoid single-commit submissions
+> - Double-check all links are publicly accessible before submitting
 
 ---
 
