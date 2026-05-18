@@ -407,7 +407,7 @@ Authorization: <JWT_TOKEN>
 
 ---
 
-## 🎤 Technical Interview Video (Answer Any 3)
+## 🎤 Technical Interview Video (Answer Any 2)
 
 **Questions:**
 
@@ -417,13 +417,13 @@ Authorization: <JWT_TOKEN>
 4. What are the main differences between SQL (PostgreSQL) and NoSQL (MongoDB) regarding schema design and scaling?
 5. What is database connection pooling in PostgreSQL, and why is it preferred over opening a new client connection for every request?
 
-**Recording Instructions:**
+**🎤 Recording Instructions:**
 
-- Use smartphone selfie camera or laptop webcam in **landscape mode**
-- Record in a well-lit, quiet room with your **face fully visible**
-- Answer your chosen **3 questions.**
-- Keep each answer **under 5 minutes**
-- Upload video to Google Drive/Youtube or any other online space, and share public acceible link.
+- Use your smartphone selfie camera or laptop webcam in **landscape (horizontal) mode**.
+- Record in a **well-lit, quiet room** with your **face fully visible** throughout the video.
+- Select and answer **any 2 questions** from the list above, spoken in **English**.
+- Keep each answer between **3–5 minutes**. Speak naturally from your understanding — avoid reading verbatim from notes or scripts.
+- Upload your video to **Google Drive**, **YouTube (Unlisted)**, or any cloud platform, and share a **publicly accessible link**.
 
 ---
 
