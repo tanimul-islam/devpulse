@@ -484,7 +484,7 @@ Submit the following in your assignment form:
 | --- | --- |
 | **60 Marks** | May 23, 2026 at 11:59 PM |
 | **50 Marks** | May 24, 2026 at 11:59 PM |
-| **30 Marks** | After May 24, 2026 at 11:59 PM |
+| **30 Marks** | After June 15, 2026 at 11:59 PM |
 
 ---
 
