@@ -28,8 +28,8 @@
 
 | Role | Allowed Actions |
 | --- | --- |
-| **contributor** | • Register and log in<br>• Create new issues (bug or feature request)<br>• View all issues |
-| **maintainer** | • All contributor permissions<br>• Update any issue field<br>• Delete any issue<br>• Change issue workflow status independently<br>• Access internal system metrics |
+| **contributor** | • Register and log in<br>• Create new issues (bug or feature request)<br>• View all issues<br>• Update own issue field |
+| **maintainer** | • All contributor permissions<br>• Update any issue field<br>• Delete any issue<br>• Change issue workflow status independently<br>|
 
 ---
 
@@ -235,6 +235,7 @@ Authorization: <JWT_TOKEN>
 ```json
 {
   "success": true,
+  "message": "Issues retrived successfully",
   "data": [
     {
       "id": 45,
@@ -274,6 +275,7 @@ Authorization: <JWT_TOKEN>
 ```json
 {
   "success": true,
+  "message": "Issue retrived successfully",
   "data": {
     "id": 45,
     "title": "Database connection timeout under load",
