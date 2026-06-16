@@ -23,6 +23,7 @@
   "homepage": "https://github.com/Apollo-Level2-Web-Dev/B7A2#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cookies": "^0.9.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
