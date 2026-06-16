@@ -6,7 +6,7 @@
 > *A collaborative platform for software teams to report bugs, suggest features, and coordinate resolutions.*
 > 
 
-##   [Live URL](https://devpulse-topaz-five.vercel.app/)
+##   [Live URL](devpulse-three-eta.vercel.app/)
 
 ## 🛠️ Technology Stack
 
