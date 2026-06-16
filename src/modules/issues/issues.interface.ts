@@ -27,3 +27,19 @@ export interface IIssue {
   created_at: Date;
   updated_at: Date;
 }
+
+export type TGetIssueQuery = {
+  sort?: string;
+  type?: string;
+  status?: string;
+};
+
+export type TIssueReporter = {
+  id: number;
+  name: String;
+  role: string;
+};
+
+export type TIssueWithReporter = Omit<IssueStatus, "reporter_id"> & {
+  reporter: TIssueReporter | null;
+};

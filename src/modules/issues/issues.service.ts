@@ -1,9 +1,13 @@
 import { pool } from "../../db";
 import {
+  IssueStatus,
   IssueType,
   type ICreateIssuePayload,
   type IIssue,
+  type TGetIssueQuery,
+  type TIssueReporter,
 } from "./issues.interface";
+import { issueRoute } from "./issues.route";
 
 const createIssueIntoDB = async (
   payload: ICreateIssuePayload,
@@ -34,6 +38,70 @@ RETURNING *
   return issue.rows[0];
 };
 
+const getAllIssuesFromDB = async (
+  query: TGetIssueQuery,
+): Promise<TIssueReporter[]> => {
+  const { sort = "newest", type, status } = query;
+
+  const conditions: string[] = [];
+  const values: string[] = [];
+
+  if (sort !== "newest" && sort !== "oldest")
+    throw new Error("Sort must be either newest or oldest");
+
+  if (type) {
+    if (!Object.values(IssueStatus).includes(status as IssueStatus)) {
+      throw new Error("Status must be open, in progress or resolved");
+    }
+    values.push(status as IssueStatus);
+
+    conditions.push(`status = $${values.length}`);
+  }
+  const orderDirection = sort === "oldest" ? "ASC" : "DESC";
+  const whereQuery =
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const issueResult = await pool.query(
+    `
+       SELECT * FROM issues
+       ${whereQuery}
+       ORDER BY created_at  ${orderDirection}
+        `,
+    values,
+  );
+  const issues = issueResult.rows;
+
+  if (issues.length === 0) return [];
+
+  const reporterIds = [...new Set(issues.map((issue) => issue.reporter_id))];
+
+  const reporterResult = await pool.query<TIssueReporter>(
+    `
+    SELECT id,name,role
+    FROM users
+    WHERE id = ANY($1::int[])
+    `,
+    [reporterIds],
+  );
+  const reporterMap = new Map<number, TIssueReporter>();
+
+  reporterResult.rows.forEach((reporter) => {
+    reporterMap.set(reporter.id, reporter);
+  });
+
+  const issuesWithReporter = issues.map((issue) => {
+    const { reporter_id, ...issueData } = issue;
+
+    return {
+      ...issueData,
+      reporter: reporterMap.get(reporter_id) || null,
+    };
+  });
+
+  return issuesWithReporter;
+};
+
 export const issueService = {
   createIssueIntoDB,
+  getAllIssuesFromDB,
 };
