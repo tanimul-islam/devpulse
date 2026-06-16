@@ -6,6 +6,7 @@ import {
   type IIssue,
   type TGetIssueQuery,
   type TIssueReporter,
+  type TIssueWithReporter,
 } from "./issues.interface";
 import { issueRoute } from "./issues.route";
 
@@ -40,7 +41,7 @@ RETURNING *
 
 const getAllIssuesFromDB = async (
   query: TGetIssueQuery,
-): Promise<TIssueReporter[]> => {
+): Promise<TIssueWithReporter[]> => {
   const { sort = "newest", type, status } = query;
 
   const conditions: string[] = [];
@@ -50,20 +51,29 @@ const getAllIssuesFromDB = async (
     throw new Error("Sort must be either newest or oldest");
 
   if (type) {
-    if (!Object.values(IssueStatus).includes(status as IssueStatus)) {
-      throw new Error("Status must be open, in progress or resolved");
+    if (!Object.values(IssueType).includes(type as IssueType)) {
+      throw new Error("Type must be either bug or feature request");
     }
-    values.push(status as IssueStatus);
 
+    values.push(type);
+    conditions.push(`type = $${values.length}`);
+  }
+
+  if (status) {
+    if (!Object.values(IssueStatus).includes(status as IssueStatus)) {
+      throw new Error("Status must be open, in progress, or resolved");
+    }
+
+    values.push(status);
     conditions.push(`status = $${values.length}`);
   }
   const orderDirection = sort === "oldest" ? "ASC" : "DESC";
   const whereQuery =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  const issueResult = await pool.query(
+  const issueResult = await pool.query<IIssue>(
     `
-       SELECT * FROM issues
+       SELECT id, title, description, type, status, reporter_id, created_at, updated_at FROM issues
        ${whereQuery}
        ORDER BY created_at  ${orderDirection}
         `,
@@ -73,7 +83,7 @@ const getAllIssuesFromDB = async (
 
   if (issues.length === 0) return [];
 
-  const reporterIds = [...new Set(issues.map((issue) => issue.reporter_id))];
+  const reporterIds = [...new Set(issues.map((issue) => issue.reporter_id))]; //moving duplicate,collection reporter if
 
   const reporterResult = await pool.query<TIssueReporter>(
     `

@@ -40,6 +40,6 @@ export type TIssueReporter = {
   role: string;
 };
 
-export type TIssueWithReporter = Omit<IssueStatus, "reporter_id"> & {
+export type TIssueWithReporter = Omit<IIssue, "reporter_id"> & {
   reporter: TIssueReporter | null;
 };
