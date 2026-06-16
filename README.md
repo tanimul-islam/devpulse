@@ -6,7 +6,7 @@
 > *A collaborative platform for software teams to report bugs, suggest features, and coordinate resolutions.*
 > 
 
-##   [Live URL](devpulse-three-eta.vercel.app/)
+##   [Live URL](https://devpulse-three-eta.vercel.app/)
 
 ## 🛠️ Technology Stack
 
