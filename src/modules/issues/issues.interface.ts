@@ -1,3 +1,6 @@
+import { Interface } from "node:readline";
+import type { TUserRole } from "../../types";
+
 export enum IssueType {
   bug = "bug",
   feature_request = "feature_request",
@@ -42,4 +45,16 @@ export type TIssueReporter = {
 
 export type TIssueWithReporter = Omit<IIssue, "reporter_id"> & {
   reporter: TIssueReporter | null;
+};
+
+export interface IUpdatePayload {
+  title?: string;
+  description?: string;
+  type?: IssueType;
+}
+
+export type TAuthenticatedUser = {
+  id: number;
+  name: string;
+  role: TUserRole;
 };

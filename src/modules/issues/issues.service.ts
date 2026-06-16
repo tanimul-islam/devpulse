@@ -4,6 +4,8 @@ import {
   IssueType,
   type ICreateIssuePayload,
   type IIssue,
+  type IUpdatePayload,
+  type TAuthenticatedUser,
   type TGetIssueQuery,
   type TIssueReporter,
   type TIssueWithReporter,
@@ -111,7 +113,110 @@ const getAllIssuesFromDB = async (
   return issuesWithReporter;
 };
 
+const UpdateIssueinDB = async (
+  issueId: number,
+  payload: IUpdatePayload,
+  user: TAuthenticatedUser,
+): Promise<IIssue> => {
+  const { title, description, type } = payload;
+  if (!title && !description && !type) {
+    throw new Error("At least one field is required to update");
+  }
+
+  if (title !== undefined && title.trim().length === 0) {
+    throw new Error("Title cannot be empty");
+  }
+
+  if (title !== undefined && title.length > 150) {
+    throw new Error("Title cannot exceed 150 characters");
+  }
+
+  if (description !== undefined && description.trim().length < 20) {
+    throw new Error("Description must be at least 20 characters");
+  }
+
+  if (type !== undefined && !Object.values(IssueType).includes(type)) {
+    throw new Error("Type must be either bug or feature_request");
+  }
+
+  const existingIssueResult = await pool.query<IIssue>(
+    `
+    SELECT * FROM issues
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [issueId],
+  );
+
+  const existingIssues = existingIssueResult.rows[0];
+
+  if (!existingIssues) throw new Error("Issues not found!");
+
+  if (user.role === "contributor") {
+    if (existingIssues.reporter_id != user.id)
+      throw new Error("Forbidden: You can only update your own issue");
+
+    if (existingIssues.status !== IssueStatus.open)
+      throw new Error("Forbidden: You can only update an open issue");
+  }
+
+  const updateResult = await pool.query<IIssue>(
+    `
+  UPDATE issues
+  SET
+  title = COALESCE ($1,title),
+  description = COALESCE($2, description),
+  type = COALESCE($3, type),
+  updated_at = NOW()
+  WHERE id=$4
+  RETURNING *
+`,
+    [
+      title ? title.trim() : null,
+      description ? description.trim() : null,
+      type || null,
+      issueId,
+    ],
+  );
+  const updatedIssue = updateResult.rows[0];
+
+  if (!updatedIssue) {
+    throw new Error("Failed to update issue");
+  }
+
+  return updatedIssue;
+};
+
+const deleteIssueFromDB = async (issueId: number, user: TAuthenticatedUser) => {
+  const existingIssueResult = await pool.query<IIssue>(
+    `
+    SELECT * FROM issues
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [issueId],
+  );
+
+  const existingIssues = existingIssueResult.rows[0];
+
+  if (!existingIssues) throw new Error("Issues not found!");
+
+  if (user.role === "contributor")
+    throw new Error("Forbidden: You can not delete any issues");
+
+  const result = await pool.query(
+    `
+     DELETE FROM issues WHERE id=$1 RETURNING *
+    `,
+    [issueId],
+  );
+
+  return result;
+};
+
 export const issueService = {
   createIssueIntoDB,
   getAllIssuesFromDB,
+  UpdateIssueinDB,
+  deleteIssueFromDB,
 };

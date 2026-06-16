@@ -64,8 +64,102 @@ const getAllISues = async (req: Request, res: Response) => {
     });
   }
 };
+const updateIssue = async (req: Request, res: Response) => {
+  try {
+    const issueId = Number(req.params.id);
+    if (!Number.isInteger(issueId)) {
+      return sendResponse(res, {
+        statusCode: 400,
+        success: false,
+        message: "Invalid Issue ID",
+      });
+    }
+
+    if (!req.user) {
+      return sendResponse(res, {
+        statusCode: 401,
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    const result = await issueService.UpdateIssueinDB(
+      issueId,
+      req.body,
+      req.user,
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "issue Updated Succesfully",
+      data: result,
+    });
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Something went wrong";
+    const statusCode = errorMessage.includes("Forbidden")
+      ? 403
+      : errorMessage.includes("not found")
+        ? 404
+        : 400;
+    sendResponse(res, {
+      statusCode,
+      success: false,
+      message: errorMessage,
+      error: {
+        message: errorMessage,
+      },
+    });
+  }
+};
+
+const deleteIssue = async (req: Request, res: Response) => {
+  try {
+    const issueId = Number(req.params.id);
+    if (!Number.isInteger(issueId)) {
+      return sendResponse(res, {
+        statusCode: 400,
+        success: false,
+        message: "Invalid Issue ID",
+      });
+    }
+    if (!req.user) {
+      return sendResponse(res, {
+        statusCode: 401,
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+    const result = await issueService.deleteIssueFromDB(issueId, req.user);
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "issue Deleted Succesfully",
+      data: result.rows[0],
+    });
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Something went wrong";
+    const statusCode = errorMessage.includes("Forbidden")
+      ? 403
+      : errorMessage.includes("not found")
+        ? 404
+        : 400;
+    sendResponse(res, {
+      statusCode,
+      success: false,
+      message: errorMessage,
+      error: {
+        message: errorMessage,
+      },
+    });
+  }
+};
 
 export const issueController = {
   createIssue,
   getAllISues,
+  updateIssue,
+  deleteIssue,
 };

@@ -1,12 +1,11 @@
 import type { JwtPayload } from "jsonwebtoken";
-
-type TRole = "contributor" | "maintainer";
+import type { TUserRole } from ".";
 
 interface TDecodedUser extends JwtPayload {
   id: number;
   name: string;
 
-  role: string;
+  role: TUserRole;
 }
 
 declare global {

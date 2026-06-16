@@ -10,4 +10,10 @@ router.post(
   issueController.createIssue,
 );
 router.get("/", issueController.getAllISues);
+router.patch(
+  "/:id",
+  auth("contributor", "maintainer"),
+  issueController.updateIssue,
+);
+router.delete("/:id", auth("maintainer"), issueController.deleteIssue);
 export const issueRoute = router;

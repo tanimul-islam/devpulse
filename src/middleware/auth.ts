@@ -1,9 +1,10 @@
 import { type NextFunction, type Request, type Response } from "express";
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import config from "../config";
 import { pool } from "../db";
-import type { TDecodedUser, TRole } from "../types/express";
-const auth = (...roles: TRole[]) => {
+import type { TDecodedUser } from "../types/express";
+import type { TUserRole } from "../types";
+const auth = (...roles: TUserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const authHeader = req.headers.authorization;
