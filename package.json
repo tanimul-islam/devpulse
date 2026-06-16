@@ -2,7 +2,7 @@
   "name": "b7a2",
   "version": "1.0.0",
   "description": "> Internal Tech Issue & Feature Tracker >  >  > *A collaborative platform for software teams to report bugs, suggest features, and coordinate resolutions.* >",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch ./src/server.ts",
@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Apollo-Level2-Web-Dev/B7A2/issues"
   },
