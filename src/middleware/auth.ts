@@ -21,7 +21,7 @@ const auth = (...roles: TRole[]) => {
       if (!token) {
         return res.status(401).json({
           success: false,
-          message: "Unauthorized Access",
+          message: "Unauthorized Token",
         });
       }
 
@@ -41,7 +41,7 @@ const auth = (...roles: TRole[]) => {
         `
         SELECT id,name,email,role
         FROM users
-        WHERE email =$1
+        WHERE id =$1
         LIMIT 1`,
         [decoded.id],
       );

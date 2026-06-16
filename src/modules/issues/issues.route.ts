@@ -1,8 +1,13 @@
 import { Router } from "express";
 import { issueController } from "./issues.controller";
+import auth from "../../middleware/auth";
 
 const router = Router();
 
-router.post("/issues", issueController.createIssue);
+router.post(
+  "/",
+  auth("contributor", "maintainer"),
+  issueController.createIssue,
+);
 
-export const authRoute = router;
+export const issueRoute = router;

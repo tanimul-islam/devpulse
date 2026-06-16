@@ -30,7 +30,7 @@ export const initDB = async () => {
                 title VARCHAR(150) NOT NULL ,
                 description TEXT NOT NULL,
                 type VARCHAR(20) NOT NULL,
-                status VARCHAR(25) NOT NULL,
+                status VARCHAR(25) NOT NULL DEFAULT 'open',
 
                  created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
