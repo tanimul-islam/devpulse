@@ -134,3 +134,6 @@ The `GET /api/issues` endpoint supports optional query parameters.
 
 ---
 
+## Video Interviews Link
+*Sync & Async Error Handling*  :  (https://youtu.be/yKMtmYOec8E)
+*SQL vs NOSQL* : (https://youtu.be/ciOHhcN5Qao)
