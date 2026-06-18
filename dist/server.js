@@ -65,6 +65,20 @@ var initDB = async () => {
 // src/modules/auth/auth.service.ts
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+// src/utils/apiError.ts
+var ApiError = class extends Error {
+  statusCode;
+  constructor(statusCode, message) {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+};
+var apiError_default = ApiError;
+
+// src/modules/auth/auth.service.ts
 var createUserIntoDB = async (payload) => {
   const { name, email, password, role } = payload;
   const hashPassword = await bcrypt.hash(password, 10);
@@ -87,11 +101,11 @@ var logInUser = async (payload) => {
     [email]
   );
   const user = userResult.rows[0];
-  if (!user) throw new Error("Invalid Credentials");
+  if (!user) throw new apiError_default(400, "Invalid Credentials");
   const isPasswordMatched = await bcrypt.compare(password, user.password);
-  if (!isPasswordMatched) throw new Error("Invalid Password!");
+  if (!isPasswordMatched) throw new apiError_default(400, "Invalid Password!");
   if (!config_default.secret || !config_default.refresh_secret)
-    throw new Error("JWT Secrets are missing!");
+    throw new apiError_default(401, "JWT Secrets are missing!");
   const jwtPayload = {
     id: user.id,
     name: user.name,
@@ -101,12 +115,12 @@ var logInUser = async (payload) => {
   const accessToken = jwt.sign(jwtPayload, config_default.secret, {
     expiresIn: "1d"
   });
-  const refreshToken = jwt.sign(jwtPayload, config_default.refresh_secret, {
+  const refreshToken2 = jwt.sign(jwtPayload, config_default.refresh_secret, {
     expiresIn: "15d"
   });
   return {
     accessToken,
-    refreshToken,
+    refreshToken: refreshToken2,
     user: {
       id: user.id,
       name: user.name,
@@ -117,9 +131,38 @@ var logInUser = async (payload) => {
     }
   };
 };
+var generateRefreshToken = async (token) => {
+  if (!token) {
+    throw new apiError_default(401, "No Token Exists!");
+  }
+  const decode = jwt.verify(
+    token,
+    config_default.refresh_secret
+  );
+  const userData = await pool.query(
+    `
+        SELECT * FROM users WHERE email =$1`,
+    [decode.email]
+  );
+  const user = userData.rows[0];
+  if (!user) throw new apiError_default(400, "User Not Found");
+  if (!user?.is_active) throw new apiError_default(403, "Forbidden!");
+  const jwtPayload = {
+    id: user.id,
+    name: user.name,
+    is_active: user.is_active,
+    email: user.email,
+    role: user.role
+  };
+  const accessToken = jwt.sign(jwtPayload, config_default.secret, {
+    expiresIn: "1d"
+  });
+  return { accessToken };
+};
 var authServices = {
   createUserIntoDB,
-  logInUser
+  logInUser,
+  generateRefreshToken
 };
 
 // src/utils/sendResponse.ts
@@ -127,7 +170,8 @@ var sendResponse = (res, data) => {
   res.status(data.statusCode).json({
     success: data.success,
     message: data.message,
-    data: data.data
+    ...data.data !== void 0 ? { data: data.data } : {},
+    ...data.error !== void 0 ? { error: data.error } : {}
   });
 };
 var sendResponse_default = sendResponse;
@@ -146,15 +190,15 @@ var signUpUser = asyncHandler_default(async (req, res) => {
   sendResponse_default(res, {
     statusCode: 201,
     success: true,
-    message: "User Created Successfuly!",
+    message: "User Created successfully!",
     data: result.rows[0]
   });
 });
 var logInUser2 = asyncHandler_default(async (req, res) => {
   const result = await authServices.logInUser(req.body);
-  const { accessToken, refreshToken, user } = result;
-  res.cookie("refreshToken", refreshToken, {
-    secure: false,
+  const { accessToken, refreshToken: refreshToken2, user } = result;
+  res.cookie("refreshToken", refreshToken2, {
+    secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     sameSite: "lax"
   });
@@ -168,15 +212,28 @@ var logInUser2 = asyncHandler_default(async (req, res) => {
     }
   });
 });
+var refreshToken = asyncHandler_default(async (req, res) => {
+  const result = await authServices.generateRefreshToken(
+    req.cookies.refreshToken
+  );
+  sendResponse_default(res, {
+    statusCode: 200,
+    success: true,
+    message: "Access Token Generated",
+    data: result
+  });
+});
 var authController = {
   signUpUser,
-  logInUser: logInUser2
+  logInUser: logInUser2,
+  refreshToken
 };
 
 // src/modules/auth/auth.route.ts
 var router = Router();
 router.post("/signup", authController.signUpUser);
 router.post("/login", authController.logInUser);
+router.post("/refresh-token", authController.refreshToken);
 var authRoute = router;
 
 // src/middleware/globalErrorHandler.ts
@@ -213,15 +270,16 @@ var IssueStatus = /* @__PURE__ */ ((IssueStatus2) => {
 // src/modules/issues/issues.service.ts
 var createIssueIntoDB = async (payload, reporterId) => {
   const { title, description, type } = payload;
-  if (!title || title.trim().length === 0) throw new Error("Title is Required");
+  if (!title || title.trim().length === 0)
+    throw new apiError_default(401, "Title is Required");
   if (title.length > 150) {
-    throw new Error("Title cannot exceed 150 characters");
+    throw new apiError_default(400, "Title cannot exceed 150 characters");
   }
   if (!description || description.trim().length < 20) {
-    throw new Error("Description must be at least 20 characters");
+    throw new apiError_default(400, "Description must be at least 20 characters");
   }
   if (!Object.values(IssueType).includes(type)) {
-    throw new Error("Type must be either bug or feature_request");
+    throw new apiError_default(400, "Type must be either bug or feature_request");
   }
   const issue = await pool.query(
     `
@@ -238,17 +296,17 @@ var getAllIssuesFromDB = async (query) => {
   const conditions = [];
   const values = [];
   if (sort !== "newest" && sort !== "oldest")
-    throw new Error("Sort must be either newest or oldest");
+    throw new apiError_default(409, "Sort must be either newest or oldest");
   if (type) {
     if (!Object.values(IssueType).includes(type)) {
-      throw new Error("Type must be either bug or feature request");
+      throw new apiError_default(409, "Type must be either bug or feature request");
     }
     values.push(type);
     conditions.push(`type = $${values.length}`);
   }
   if (status) {
     if (!Object.values(IssueStatus).includes(status)) {
-      throw new Error("Status must be open, in progress, or resolved");
+      throw new apiError_default(409, "Status must be open, in progress, or resolved");
     }
     values.push(status);
     conditions.push(`status = $${values.length}`);
@@ -293,16 +351,16 @@ var UpdateIssueinDB = async (issueId, payload, user) => {
     throw new Error("At least one field is required to update");
   }
   if (title !== void 0 && title.trim().length === 0) {
-    throw new Error("Title cannot be empty");
+    throw new apiError_default(400, "Title cannot be empty");
   }
   if (title !== void 0 && title.length > 150) {
-    throw new Error("Title cannot exceed 150 characters");
+    throw new apiError_default(400, "Title cannot exceed 150 characters");
   }
   if (description !== void 0 && description.trim().length < 20) {
-    throw new Error("Description must be at least 20 characters");
+    throw new apiError_default(400, "Description must be at least 20 characters");
   }
   if (type !== void 0 && !Object.values(IssueType).includes(type)) {
-    throw new Error("Type must be either bug or feature_request");
+    throw new apiError_default(400, "Type must be either bug or feature_request");
   }
   const existingIssueResult = await pool.query(
     `
@@ -313,12 +371,12 @@ var UpdateIssueinDB = async (issueId, payload, user) => {
     [issueId]
   );
   const existingIssues = existingIssueResult.rows[0];
-  if (!existingIssues) throw new Error("Issues not found!");
+  if (!existingIssues) throw new apiError_default(400, "Issues not found!");
   if (user.role === "contributor") {
     if (existingIssues.reporter_id != user.id)
-      throw new Error("Forbidden: You can only update your own issue");
+      throw new apiError_default(409, "You can only update your own issue");
     if (existingIssues.status !== "open" /* open */)
-      throw new Error("Forbidden: You can only update an open issue");
+      throw new apiError_default(409, "You can only update an open issue");
   }
   const updateResult = await pool.query(
     `
@@ -340,7 +398,7 @@ var UpdateIssueinDB = async (issueId, payload, user) => {
   );
   const updatedIssue = updateResult.rows[0];
   if (!updatedIssue) {
-    throw new Error("Failed to update issue");
+    throw new apiError_default(400, "Failed to update issue");
   }
   return updatedIssue;
 };
@@ -356,10 +414,10 @@ var deleteIssueFromDB = async (issueId, user) => {
   const existingIssues = existingIssueResult.rows[0];
   if (!existingIssues) throw new Error("Issues not found!");
   if (user.role === "contributor")
-    throw new Error("Forbidden: You can not delete any issues");
+    throw new apiError_default(409, "You can not delete any issues");
   const result = await pool.query(
     `
-     DELETE FROM issues WHERE id=$1 RETURNING *
+     DELETE FROM issues WHERE id=$1 
     `,
     [issueId]
   );
@@ -405,105 +463,68 @@ var createIssue = async (req, res) => {
     });
   }
 };
-var getAllISues = async (req, res) => {
-  try {
-    const result = await issueService.getAllIssuesFromDB(req.query);
-    sendResponse_default(res, {
-      statusCode: 200,
-      success: true,
-      message: "Issues Retrived Successfully",
-      data: result
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-    sendResponse_default(res, {
+var getAllISues = asyncHandler_default(async (req, res) => {
+  const result = await issueService.getAllIssuesFromDB(req.query);
+  sendResponse_default(res, {
+    statusCode: 200,
+    success: true,
+    message: "Issues Retrived Successfully",
+    data: result
+  });
+  {
+  }
+});
+var updateIssue = asyncHandler_default(async (req, res) => {
+  const issueId = Number(req.params.id);
+  if (!Number.isInteger(issueId)) {
+    return sendResponse_default(res, {
       statusCode: 400,
       success: false,
-      message: errorMessage,
-      error: {
-        message: errorMessage
-      }
+      message: "Invalid Issue ID"
     });
   }
-};
-var updateIssue = async (req, res) => {
-  try {
-    const issueId = Number(req.params.id);
-    if (!Number.isInteger(issueId)) {
-      return sendResponse_default(res, {
-        statusCode: 400,
-        success: false,
-        message: "Invalid Issue ID"
-      });
-    }
-    if (!req.user) {
-      return sendResponse_default(res, {
-        statusCode: 401,
-        success: false,
-        message: "Unauthorized access"
-      });
-    }
-    const result = await issueService.UpdateIssueinDB(
-      issueId,
-      req.body,
-      req.user
-    );
-    sendResponse_default(res, {
-      statusCode: 200,
-      success: true,
-      message: "issue Updated Succesfully",
-      data: result
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-    const statusCode = errorMessage.includes("Forbidden") ? 403 : errorMessage.includes("not found") ? 404 : 400;
-    sendResponse_default(res, {
-      statusCode,
+  if (!req.user) {
+    return sendResponse_default(res, {
+      statusCode: 401,
       success: false,
-      message: errorMessage,
-      error: {
-        message: errorMessage
-      }
+      message: "Unauthorized access"
     });
   }
-};
-var deleteIssue = async (req, res) => {
-  try {
-    const issueId = Number(req.params.id);
-    if (!Number.isInteger(issueId)) {
-      return sendResponse_default(res, {
-        statusCode: 400,
-        success: false,
-        message: "Invalid Issue ID"
-      });
-    }
-    if (!req.user) {
-      return sendResponse_default(res, {
-        statusCode: 401,
-        success: false,
-        message: "Unauthorized access"
-      });
-    }
-    const result = await issueService.deleteIssueFromDB(issueId, req.user);
-    sendResponse_default(res, {
-      statusCode: 200,
-      success: true,
-      message: "issue Deleted Succesfully",
-      data: result.rows[0]
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-    const statusCode = errorMessage.includes("Forbidden") ? 403 : errorMessage.includes("not found") ? 404 : 400;
-    sendResponse_default(res, {
-      statusCode,
+  const result = await issueService.UpdateIssueinDB(
+    issueId,
+    req.body,
+    req.user
+  );
+  sendResponse_default(res, {
+    statusCode: 200,
+    success: true,
+    message: "Issue Updated Succesfully",
+    data: result
+  });
+});
+var deleteIssue = asyncHandler_default(async (req, res) => {
+  const issueId = Number(req.params.id);
+  if (!Number.isInteger(issueId)) {
+    return sendResponse_default(res, {
+      statusCode: 400,
       success: false,
-      message: errorMessage,
-      error: {
-        message: errorMessage
-      }
+      message: "Invalid Issue ID"
     });
   }
-};
+  if (!req.user) {
+    return sendResponse_default(res, {
+      statusCode: 401,
+      success: false,
+      message: "Unauthorized access"
+    });
+  }
+  const result = await issueService.deleteIssueFromDB(issueId, req.user);
+  sendResponse_default(res, {
+    statusCode: 200,
+    success: true,
+    message: "Issue Deleted Succesfully"
+  });
+});
 var issueController = {
   createIssue,
   getAllISues,
@@ -519,7 +540,7 @@ var auth = (...roles) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        res.status(401).json({
+        return res.status(401).json({
           success: false,
           message: "Unauthorized Access"
         });
@@ -551,13 +572,13 @@ var auth = (...roles) => {
       );
       const user = userResult.rows[0];
       if (!user) {
-        res.status(404).json({
+        return res.status(404).json({
           success: false,
           message: "User Not Found"
         });
       }
       if (roles.length && !roles.includes(user.role)) {
-        res.status(403).json({
+        return res.status(403).json({
           success: false,
           message: "Forbidden, This role has no access"
         });
@@ -589,7 +610,7 @@ router2.patch(
   issueController.updateIssue
 );
 router2.delete("/:id", auth_default("maintainer"), issueController.deleteIssue);
-var issueRoute2 = router2;
+var issueRoute = router2;
 
 // src/App.ts
 import cors from "cors";
@@ -599,10 +620,10 @@ var corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(express.json());
-express.urlencoded({ extended: true });
+app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use("/api/auth", authRoute);
-app.use("/api/issues", issueRoute2);
+app.use("/api/issues", issueRoute);
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Welcome to Devpulse" });
 });

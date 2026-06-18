@@ -6,6 +6,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { TJwtPayload, TUserRow } from "./auth.interface";
 import config from "../../config";
 import ApiError from "../../utils/apiError";
+
 const createUserIntoDB = async (payload: IUser) => {
   const { name, email, password, role } = payload;
 
