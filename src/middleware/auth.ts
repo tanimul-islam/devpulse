@@ -10,7 +10,7 @@ const auth = (...roles: TUserRole[]) => {
       const authHeader = req.headers.authorization;
 
       if (!authHeader) {
-        res.status(401).json({
+        return res.status(401).json({
           success: false,
           message: "Unauthorized Access",
         });
@@ -49,14 +49,14 @@ const auth = (...roles: TUserRole[]) => {
       const user = userResult.rows[0];
 
       if (!user) {
-        res.status(404).json({
+        return res.status(404).json({
           success: false,
           message: "User Not Found",
         });
       }
 
       if (roles.length && !roles.includes(user.role)) {
-        res.status(403).json({
+        return res.status(403).json({
           success: false,
           message: "Forbidden, This role has no access",
         });
