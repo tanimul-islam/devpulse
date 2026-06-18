@@ -1,5 +1,9 @@
 import { Pool } from "pg";
 import config from "../config";
+import ApiError from "../utils/apiError";
+if (!config.connection_string) {
+  throw new ApiError(500, "DATABASE_URL is not set");
+}
 
 export const pool = new Pool({
   connectionString: config.connection_string,
