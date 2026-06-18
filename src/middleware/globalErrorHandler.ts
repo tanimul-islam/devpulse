@@ -1,15 +1,29 @@
-import type { NextFunction, Request, Response } from "express";
+import type { ErrorRequestHandler } from "express";
 
-export const globalErrorHandler = (
-  err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+type TError = Error & {
+  statusCode?: number;
+};
+
+const globalErrorHandler: ErrorRequestHandler = (
+  err: TError,
+  req,
+  res,
+  next,
 ) => {
-  console.error(err.stack);
+  const statusCode = err.statusCode || 500;
 
-  res.status(500).json({
+  const message =
+    process.env.NODE_ENV === "production"
+      ? err.message || "Something went wrong"
+      : err.message || "Something went wrong";
+
+  res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message,
+    error: {
+      message,
+    },
   });
 };
+
+export default globalErrorHandler;

@@ -132,56 +132,42 @@ var sendResponse = (res, data) => {
 };
 var sendResponse_default = sendResponse;
 
+// src/utils/asyncHandler.ts
+var catchAsync = (fn) => {
+  return (req, res, next) => {
+    void Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+var asyncHandler_default = catchAsync;
+
 // src/modules/auth/auth.controller.ts
-var signUpUser = async (req, res) => {
-  try {
-    const result = await authServices.createUserIntoDB(req.body);
-    sendResponse_default(res, {
-      statusCode: 201,
-      success: true,
-      message: "User Created Successfuly!",
-      data: result.rows[0]
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown Error";
-    sendResponse_default(res, {
-      statusCode: 400,
-      success: false,
-      message: "Something Went Wrong",
-      error: {
-        message: errorMessage
-      }
-    });
-  }
-};
-var logInUser2 = async (req, res) => {
-  try {
-    const result = await authServices.logInUser(req.body);
-    const { accessToken, refreshToken, user } = result;
-    res.cookie("refreshToken", refreshToken, {
-      secure: false,
-      httpOnly: true,
-      sameSite: "lax"
-    });
-    sendResponse_default(res, {
-      statusCode: 200,
-      success: true,
-      message: "Log In Successful",
-      data: {
-        token: accessToken,
-        user
-      }
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
-    sendResponse_default(res, {
-      statusCode: 400,
-      success: false,
-      message: errorMessage,
-      error: { message: errorMessage }
-    });
-  }
-};
+var signUpUser = asyncHandler_default(async (req, res) => {
+  const result = await authServices.createUserIntoDB(req.body);
+  sendResponse_default(res, {
+    statusCode: 201,
+    success: true,
+    message: "User Created Successfuly!",
+    data: result.rows[0]
+  });
+});
+var logInUser2 = asyncHandler_default(async (req, res) => {
+  const result = await authServices.logInUser(req.body);
+  const { accessToken, refreshToken, user } = result;
+  res.cookie("refreshToken", refreshToken, {
+    secure: false,
+    httpOnly: true,
+    sameSite: "lax"
+  });
+  sendResponse_default(res, {
+    statusCode: 200,
+    success: true,
+    message: "Log In Successful",
+    data: {
+      token: accessToken,
+      user
+    }
+  });
+});
 var authController = {
   signUpUser,
   logInUser: logInUser2
@@ -195,12 +181,17 @@ var authRoute = router;
 
 // src/middleware/globalErrorHandler.ts
 var globalErrorHandler = (err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
+  const statusCode = err.statusCode || 500;
+  const message = process.env.NODE_ENV === "production" ? err.message || "Something went wrong" : err.message || "Something went wrong";
+  res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error"
+    message,
+    error: {
+      message
+    }
   });
 };
+var globalErrorHandler_default = globalErrorHandler;
 
 // src/modules/issues/issues.route.ts
 import { Router as Router2 } from "express";
@@ -615,7 +606,7 @@ app.use("/api/issues", issueRoute2);
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Welcome to Devpulse" });
 });
-app.use(globalErrorHandler);
+app.use(globalErrorHandler_default);
 var App_default = app;
 
 // src/server.ts

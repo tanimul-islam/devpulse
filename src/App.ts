@@ -5,7 +5,7 @@ import express, {
 } from "express";
 
 import { authRoute } from "./modules/auth/auth.route";
-import { globalErrorHandler } from "./middleware/globalErrorHandler";
+import globalErrorHandler from "./middleware/globalErrorHandler";
 import { issueRoute } from "./modules/issues/issues.route";
 import cors from "cors";
 
@@ -25,6 +25,7 @@ app.use("/api/issues", issueRoute);
 app.get("/", (req: Request, res: Response) => {
   res.status(200).json({ message: "Welcome to Devpulse" });
 });
+
 app.use(globalErrorHandler);
 
 export default app;
