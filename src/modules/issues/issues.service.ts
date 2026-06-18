@@ -1,4 +1,5 @@
 import { pool } from "../../db";
+import ApiError from "../../utils/apiError";
 import {
   IssueStatus,
   IssueType,
@@ -17,17 +18,18 @@ const createIssueIntoDB = async (
   reporterId: number,
 ): Promise<IIssue> => {
   const { title, description, type } = payload;
-  if (!title || title.trim().length === 0) throw new Error("Title is Required");
+  if (!title || title.trim().length === 0)
+    throw new ApiError(401, "Title is Required");
   if (title.length > 150) {
-    throw new Error("Title cannot exceed 150 characters");
+    throw new ApiError(400, "Title cannot exceed 150 characters");
   }
 
   if (!description || description.trim().length < 20) {
-    throw new Error("Description must be at least 20 characters");
+    throw new ApiError(400, "Description must be at least 20 characters");
   }
 
   if (!Object.values(IssueType).includes(type)) {
-    throw new Error("Type must be either bug or feature_request");
+    throw new ApiError(400, "Type must be either bug or feature_request");
   }
   const issue = await pool.query(
     `
@@ -50,11 +52,11 @@ const getAllIssuesFromDB = async (
   const values: string[] = [];
 
   if (sort !== "newest" && sort !== "oldest")
-    throw new Error("Sort must be either newest or oldest");
+    throw new ApiError(409, "Sort must be either newest or oldest");
 
   if (type) {
     if (!Object.values(IssueType).includes(type as IssueType)) {
-      throw new Error("Type must be either bug or feature request");
+      throw new ApiError(409, "Type must be either bug or feature request");
     }
 
     values.push(type);
@@ -63,7 +65,7 @@ const getAllIssuesFromDB = async (
 
   if (status) {
     if (!Object.values(IssueStatus).includes(status as IssueStatus)) {
-      throw new Error("Status must be open, in progress, or resolved");
+      throw new ApiError(409, "Status must be open, in progress, or resolved");
     }
 
     values.push(status);
@@ -124,19 +126,19 @@ const UpdateIssueinDB = async (
   }
 
   if (title !== undefined && title.trim().length === 0) {
-    throw new Error("Title cannot be empty");
+    throw new ApiError(400, "Title cannot be empty");
   }
 
   if (title !== undefined && title.length > 150) {
-    throw new Error("Title cannot exceed 150 characters");
+    throw new ApiError(400, "Title cannot exceed 150 characters");
   }
 
   if (description !== undefined && description.trim().length < 20) {
-    throw new Error("Description must be at least 20 characters");
+    throw new ApiError(400, "Description must be at least 20 characters");
   }
 
   if (type !== undefined && !Object.values(IssueType).includes(type)) {
-    throw new Error("Type must be either bug or feature_request");
+    throw new ApiError(400, "Type must be either bug or feature_request");
   }
 
   const existingIssueResult = await pool.query<IIssue>(
@@ -150,14 +152,14 @@ const UpdateIssueinDB = async (
 
   const existingIssues = existingIssueResult.rows[0];
 
-  if (!existingIssues) throw new Error("Issues not found!");
+  if (!existingIssues) throw new ApiError(400, "Issues not found!");
 
   if (user.role === "contributor") {
     if (existingIssues.reporter_id != user.id)
-      throw new Error("Forbidden: You can only update your own issue");
+      throw new ApiError(409, "You can only update your own issue");
 
     if (existingIssues.status !== IssueStatus.open)
-      throw new Error("Forbidden: You can only update an open issue");
+      throw new ApiError(409, "You can only update an open issue");
   }
 
   const updateResult = await pool.query<IIssue>(
@@ -181,7 +183,7 @@ const UpdateIssueinDB = async (
   const updatedIssue = updateResult.rows[0];
 
   if (!updatedIssue) {
-    throw new Error("Failed to update issue");
+    throw new ApiError(400, "Failed to update issue");
   }
 
   return updatedIssue;
@@ -202,7 +204,7 @@ const deleteIssueFromDB = async (issueId: number, user: TAuthenticatedUser) => {
   if (!existingIssues) throw new Error("Issues not found!");
 
   if (user.role === "contributor")
-    throw new Error("Forbidden: You can not delete any issues");
+    throw new ApiError(409, "You can not delete any issues");
 
   const result = await pool.query(
     `

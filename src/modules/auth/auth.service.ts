@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { TJwtPayload, TUserRow } from "./auth.interface";
 import config from "../../config";
+import ApiError from "../../utils/apiError";
 const createUserIntoDB = async (payload: IUser) => {
   const { name, email, password, role } = payload;
 
@@ -33,14 +34,14 @@ const logInUser = async (payload: IUser) => {
 
   const user = userResult.rows[0];
 
-  if (!user) throw new Error("Invalid Credentials");
+  if (!user) throw new ApiError(400, "Invalid Credentials");
 
   const isPasswordMatched = await bcrypt.compare(password, user.password);
 
-  if (!isPasswordMatched) throw new Error("Invalid Password!");
+  if (!isPasswordMatched) throw new ApiError(400, "Invalid Password!");
 
   if (!config.secret || !config.refresh_secret)
-    throw new Error("JWT Secrets are missing!");
+    throw new ApiError(401, "JWT Secrets are missing!");
 
   const jwtPayload: TJwtPayload = {
     id: user.id,
