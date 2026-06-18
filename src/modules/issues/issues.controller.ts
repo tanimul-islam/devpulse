@@ -79,7 +79,7 @@ const updateIssue = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "issue Updated Succesfully",
+    message: "Issue Updated Succesfully",
     data: result,
   });
 });
@@ -105,8 +105,7 @@ const deleteIssue = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "issue Deleted Succesfully",
-    data: result.rows[0],
+    message: "Issue Deleted Succesfully",
   });
 });
 

@@ -11,7 +11,6 @@ import {
   type TIssueReporter,
   type TIssueWithReporter,
 } from "./issues.interface";
-import { issueRoute } from "./issues.route";
 
 const createIssueIntoDB = async (
   payload: ICreateIssuePayload,
@@ -208,7 +207,7 @@ const deleteIssueFromDB = async (issueId: number, user: TAuthenticatedUser) => {
 
   const result = await pool.query(
     `
-     DELETE FROM issues WHERE id=$1 RETURNING *
+     DELETE FROM issues WHERE id=$1 
     `,
     [issueId],
   );
