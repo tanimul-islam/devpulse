@@ -6,7 +6,7 @@
 > *A collaborative platform for software teams to report bugs, suggest features, and coordinate resolutions.*
 > 
 
-##   [Live URL](https://devpulse-topaz-five.vercel.app/)
+##   [Live URL](https://devpulse-three-eta.vercel.app/)
 
 ## 🛠️ Technology Stack
 
@@ -134,3 +134,6 @@ The `GET /api/issues` endpoint supports optional query parameters.
 
 ---
 
+## Video Interviews Link
+*Sync & Async Error Handling*  :  (https://youtu.be/yKMtmYOec8E)
+*SQL vs NOSQL* : (https://youtu.be/ciOHhcN5Qao)
